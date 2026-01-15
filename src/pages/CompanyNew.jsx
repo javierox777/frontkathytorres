@@ -7,6 +7,7 @@ export default function CompanyNew() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const nav = useNavigate();
+  
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -46,18 +47,18 @@ export default function CompanyNew() {
       {msg && <p className="text-emerald-300 text-sm">{msg}</p>}
 
       <form onSubmit={onSubmit} className="grid grid-cols-2 gap-4">
-        <input name="name" placeholder="Nombre empresa" className="input col-span-2" />
-        <input name="rut" placeholder="RUT / Tax ID" className="input" />
-        <input name="country" placeholder="País" className="input" />
-        <input name="email" placeholder="Email contacto" className="input" />
-        <input name="phone" placeholder="Teléfono" className="input" />
-        <input name="address" placeholder="Dirección" className="input col-span-2" />
+        <input name="name" placeholder="Nombre empresa" className="input col-span-2" required />
+        <input name="rut" placeholder="RUT / Tax ID" className="input" required />
+        <input name="country" placeholder="País" className="input" required />
+        <input name="email" placeholder="Email contacto" className="input" required />
+        <input name="phone" placeholder="Teléfono" className="input" required />
+        <input name="address" placeholder="Dirección" className="input col-span-2" required />
 
         <div className="col-span-2 pt-4">
           <h2 className="font-semibold mb-2">Usuario cliente</h2>
-          <input name="clientName" placeholder="Nombre usuario" className="input col-span-2" />
-          <input name="clientEmail" type="email" placeholder="Email usuario" className="input col-span-2" />
-          <input name="clientPassword" type="password" placeholder="Contraseña usuario" className="input col-span-2" />
+          <input name="clientName" placeholder="Nombre usuario" className="input col-span-2" required />
+          <input name="clientEmail" type="email" placeholder="Email usuario" className="input col-span-2" required />
+          <input name="clientPassword" type="password" placeholder="Contraseña usuario" className="input col-span-2" required />
         </div>
 
         <button className="btn-primary col-span-2" disabled={loading}>
