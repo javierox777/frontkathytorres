@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { api, listReports, signReport, deleteReport } from "../services/api.js";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { api, listReports, deleteReport } from "../services/api.js";
 import ReportPDFButton from "../components/ReportPDFButton.jsx";
 
 export default function ReportsList() {
   const [sp, setSp] = useSearchParams();
+  const nav = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [data, setData] = useState({ items: [], total: 0, page: 1, pages: 1 });
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
 
   const page = Number(sp.get("page") || 1);
   const type = sp.get("type") || "";
@@ -66,7 +66,22 @@ export default function ReportsList() {
   }, [page, type, company]);
 
   const reports = useMemo(() => data.items || [], [data.items]);
-  const toggleExpand = (id) => setExpandedId((curr) => (curr === id ? null : id));
+
+  const goEdit = (r) => {
+    if (!r?._id) return;
+    nav(`/reports/${r._id}/edit`);
+  };
+
+  const doDelete = async (id) => {
+    if (!id) return;
+    if (!confirm("¿Eliminar este informe? Esta acción lo oculta del sistema.")) return;
+    try {
+      await deleteReport(id);
+      await fetchList();
+    } catch (e) {
+      alert(e?.response?.data?.message || "No se pudo eliminar el informe");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -128,11 +143,8 @@ export default function ReportsList() {
                 </td>
               </tr>
             ) : (
-              reports.flatMap((r) => {
-                const isOpen = expandedId === r._id;
-                return [
-                  (
-                    <tr key={r._id} className="border-b border-white/10 hover:bg-white/5">
+              reports.map((r) => (
+                <tr key={r._id} className="border-b border-white/10 hover:bg-white/5">
                       <td className="px-4 py-3 font-semibold">{r.reportNumber ?? "—"}</td>
                       <td className="px-4 py-3">{r.company?.name || "—"}</td>
                       <td className="px-4 py-3">{r.patient?.name || "—"}</td>
@@ -146,24 +158,21 @@ export default function ReportsList() {
                         <div className="flex gap-2 justify-end">
                           <button
                             className="btn-primary w-auto px-3 py-2 bg-white/10 hover:bg-white/20"
-                            onClick={() => toggleExpand(r._id)}
+                            onClick={() => goEdit(r)}
                           >
-                            {isOpen ? "Ocultar" : "Ver"}
+                            Ver
                           </button>
                           <ReportPDFButton reportId={r._id} disabled={!r._id} />
+                          <button
+                            className="btn-primary w-auto px-3 py-2 bg-red-600 hover:bg-red-700"
+                            onClick={() => doDelete(r._id)}
+                          >
+                            Eliminar
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  ),
-                  isOpen && (
-                    <tr key={`${r._id}-details`} className="border-b border-white/10">
-                      <td colSpan={7} className="px-4 py-4 bg-white/5">
-                        <Details reportId={r._id} onChange={fetchList} />
-                      </td>
-                    </tr>
-                  ),
-                ];
-              })
+              ))
             )}
           </tbody>
         </table>
@@ -187,99 +196,6 @@ export default function ReportsList() {
         >
           Siguiente
         </button>
-      </div>
-    </div>
-  );
-}
-
-function Details({ reportId, onChange }) {
-  const [loading, setLoading] = useState(true);
-  const [report, setReport] = useState(null);
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get(`/reports/${reportId}`);
-        setReport(data.report);
-      } catch (e) {
-        console.error(e);
-        setReport(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [reportId]);
-
-  const doSign = async () => {
-    try {
-      setMsg("");
-      await signReport(reportId, {});
-      setMsg("✅ Informe firmado (se usó la firma del usuario si existe).");
-      await onChange?.();
-    } catch (e) {
-      setMsg(e?.response?.data?.message || "❌ No se pudo firmar.");
-    }
-  };
-
-  const doDelete = async () => {
-    if (!confirm("¿Eliminar este informe? Esta acción lo oculta del sistema.")) return;
-    try {
-      setMsg("");
-      await deleteReport(reportId);
-      setMsg("✅ Informe eliminado.");
-      await onChange?.();
-    } catch (e) {
-      setMsg(e?.response?.data?.message || "❌ No se pudo eliminar.");
-    }
-  };
-
-  if (loading) return <div className="text-sm text-white/70">Cargando detalle…</div>;
-  if (!report) return <div className="text-sm text-red-200">No se pudo cargar el detalle.</div>;
-
-  return (
-    <div className="text-sm space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="text-white/80">
-          <b>N°:</b> {report.reportNumber} · <b>Cliente:</b> {report.company?.name} · <b>Paciente:</b> {report.patient?.name}
-        </div>
-        <div className="flex gap-2">
-          <Link
-            to={`/reports/${reportId}/edit`}
-            className="btn-primary w-auto px-3 py-2 bg-white/10 hover:bg-white/20"
-          >
-            Editar
-          </Link>
-          <button className="btn-primary w-auto" onClick={doSign} disabled={report.signature?.signed}>
-            {report.signature?.signed ? "Ya firmado" : "Firmar"}
-          </button>
-          <button className="btn-primary w-auto px-3 py-2 bg-red-600 hover:bg-red-700" onClick={doDelete}>
-            Eliminar
-          </button>
-        </div>
-      </div>
-      {msg && <div className="text-white/80">{msg}</div>}
-      <div className="grid md:grid-cols-2 gap-3 text-white/80">
-        <div className="glass p-3 rounded-2xl">
-          <div className="font-semibold">Paciente</div>
-          <div>Nombre: {report.patient?.name || "—"}</div>
-          <div>RUT: {report.patient?.rut || "—"}</div>
-          <div>Edad: {report.patient?.edad || "—"}</div>
-          <div>Cargo: {report.patient?.cargo || "—"}</div>
-        </div>
-        <div className="glass p-3 rounded-2xl">
-          <div className="font-semibold">Firma</div>
-          <div>Firmado: {report.signature?.signed ? "Sí" : "No"}</div>
-          <div>Código: {report.signature?.code || "—"}</div>
-          <div>Fecha: {report.signature?.date ? new Date(report.signature.date).toLocaleString() : "—"}</div>
-        </div>
-      </div>
-      <div className="glass p-3 rounded-2xl text-white/80">
-        <div className="font-semibold mb-2">Datos del formulario (evaluation)</div>
-        <pre className="whitespace-pre-wrap break-words text-xs bg-black/30 p-2 rounded-xl">
-{JSON.stringify(report.evaluation || {}, null, 2)}
-        </pre>
       </div>
     </div>
   );

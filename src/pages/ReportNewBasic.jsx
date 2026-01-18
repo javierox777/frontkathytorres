@@ -1,6 +1,6 @@
 // src/pages/ReportNewBasic.jsx
 import { useEffect, useMemo, useState } from "react";
-import { api, createReport, signReport, getMe } from "../services/api.js";
+import { api, createReport, signReport, getMe, getReport, updateReport } from "../services/api.js";
 import { useNavigate } from "react-router-dom";
 
 // Base URL para construir la ruta absoluta de la firma en la vista previa
@@ -23,11 +23,14 @@ const EPWORTH_OPTS = [
   "Somnolencia Grave",
 ];
 
-export default function ReportNewBasic() {
+export default function ReportNewBasic({ mode = "new", reportId: reportIdProp } = {}) {
   const nav = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [companyId, setCompanyId] = useState("");
+  const [status, setStatus] = useState("draft");
   const [firmarAlGuardar, setFirmarAlGuardar] = useState(true);
+
+  const reportId = reportIdProp || null;
 
   // Perfil (para tomar la firma ya subida y mostrar vista previa)
   const [me, setMe] = useState(null);
@@ -97,6 +100,66 @@ export default function ReportNewBasic() {
     concl_observacion: "",
   }));
 
+  // Modo edición: cargar informe y poblar formulario completo
+  useEffect(() => {
+    if (mode !== "edit" || !reportId) return;
+    (async () => {
+      try {
+        const { data } = await getReport(reportId);
+        const r = data?.report;
+        if (!r?._id) return;
+
+        setCompanyId(r.company?._id || "");
+        setStatus(r.status || "draft");
+
+        const ev = r.evaluation || {};
+        // Compatibilidad: si algunos campos vienen en patient, preferirlos.
+        const p = r.patient || {};
+
+        setForm((prev) => ({
+          ...prev,
+          // Identificación
+          nombre: ev.nombre ?? p.name ?? prev.nombre,
+          rut: ev.rut ?? p.rut ?? prev.rut,
+          edad: ev.edad ?? p.edad ?? prev.edad,
+          cargo: ev.cargo ?? p.cargo ?? prev.cargo,
+          licencia: ev.licencia ?? prev.licencia,
+          fecha: ev.fechaEvaluacion ?? ev.fecha ?? prev.fecha,
+          vigenciaLicencia: ev.vigenciaLicencia ?? prev.vigenciaLicencia,
+          vigenciaEvaluacion: ev.vigenciaEvaluacion ?? prev.vigenciaEvaluacion,
+
+          // Psicométrica
+          psi_palancas: ev.psi_palancas ?? prev.psi_palancas,
+          psi_punteado: ev.psi_punteado ?? prev.psi_punteado,
+          psi_reactimetria: ev.psi_reactimetria ?? prev.psi_reactimetria,
+
+          // Evaluación psicológica
+          psy_extraversion: ev.psy_extraversion ?? prev.psy_extraversion,
+          psy_neuroticismo: ev.psy_neuroticismo ?? prev.psy_neuroticismo,
+          psy_psicoticismo: ev.psy_psicoticismo ?? prev.psy_psicoticismo,
+          psy_observaciones: ev.psy_observaciones ?? prev.psy_observaciones,
+
+          // Audiometría
+          audio_ambos: ev.audio_ambos ?? prev.audio_ambos,
+          s_audicion_oi: ev.s_audicion_oi ?? prev.s_audicion_oi,
+          s_audicion_od: ev.s_audicion_od ?? prev.s_audicion_od,
+
+          // Sueño
+          epworth: ev.epworth ?? prev.epworth,
+
+          // Conclusión
+          concl_resultado: ev.concl_resultado ?? prev.concl_resultado,
+          concl_lentes_lejos: ev.concl_lentes_lejos ?? prev.concl_lentes_lejos,
+          concl_observacion: ev.concl_observacion ?? prev.concl_observacion,
+        }));
+      } catch (e) {
+        console.error("Error cargando informe básico:", e);
+        alert(e?.response?.data?.message || "No se pudo cargar el informe para edición");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, reportId]);
+
   const resumen = useMemo(() => {
     const aprobado = (v) => (v || "").toLowerCase() === "aprobado";
     const pruebasAprobadas = [form.psi_palancas, form.psi_punteado, form.psi_reactimetria].filter(aprobado);
@@ -108,54 +171,77 @@ export default function ReportNewBasic() {
 
   const set = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     try {
       if (!companyId) {
         alert("Debes seleccionar un cliente (empresa).");
         return;
       }
 
-      const payload = {
-        type: "basic",
-        companyId,
-        patient: {
-          name: form.nombre,
-          rut: form.rut,
-          edad: form.edad,
-          cargo: form.cargo,
-        },
-        evaluation: {
-          // Guarda todos los campos reales del formulario
-          nombre: form.nombre,
-          rut: form.rut,
-          edad: form.edad,
-          cargo: form.cargo,
-          licencia: form.licencia,
-          fechaEvaluacion: form.fecha,
-          vigenciaLicencia: form.vigenciaLicencia,
-          vigenciaEvaluacion: form.vigenciaEvaluacion,
-          psi_palancas: form.psi_palancas,
-          psi_punteado: form.psi_punteado,
-          psi_reactimetria: form.psi_reactimetria,
-          psy_extraversion: form.psy_extraversion,
-          psy_neuroticismo: form.psy_neuroticismo,
-          psy_psicoticismo: form.psy_psicoticismo,
-          psy_observaciones: form.psy_observaciones,
-          audio_ambos: form.audio_ambos,
-          s_audicion_oi: form.s_audicion_oi,
-          s_audicion_od: form.s_audicion_od,
-          epworth: form.epworth,
-          concl_resultado: form.concl_resultado,
-          concl_lentes_lejos: form.concl_lentes_lejos,
-          concl_observacion: form.concl_observacion,
-        },
+      const evaluation = {
+        // Guarda todos los campos reales del formulario
+        nombre: form.nombre,
+        rut: form.rut,
+        edad: form.edad,
+        cargo: form.cargo,
+        licencia: form.licencia,
+        fechaEvaluacion: form.fecha,
+        vigenciaLicencia: form.vigenciaLicencia,
+        vigenciaEvaluacion: form.vigenciaEvaluacion,
+        psi_palancas: form.psi_palancas,
+        psi_punteado: form.psi_punteado,
+        psi_reactimetria: form.psi_reactimetria,
+        psy_extraversion: form.psy_extraversion,
+        psy_neuroticismo: form.psy_neuroticismo,
+        psy_psicoticismo: form.psy_psicoticismo,
+        psy_observaciones: form.psy_observaciones,
+        audio_ambos: form.audio_ambos,
+        s_audicion_oi: form.s_audicion_oi,
+        s_audicion_od: form.s_audicion_od,
+        epworth: form.epworth,
+        concl_resultado: form.concl_resultado,
+        concl_lentes_lejos: form.concl_lentes_lejos,
+        concl_observacion: form.concl_observacion,
       };
 
-      const created = await createReport(payload);
-      const report = created?.report;
-      if (!report?._id) throw new Error("No se pudo crear el reporte");
+      let report = null;
 
-      if (firmarAlGuardar) {
+      if (mode === "edit") {
+        if (!reportId) {
+          alert("Falta el ID del informe para editar.");
+          return;
+        }
+        const { data } = await updateReport(reportId, {
+          company: companyId,
+          type: "basic",
+          status,
+          patient: {
+            name: form.nombre,
+            rut: form.rut,
+            edad: form.edad,
+            cargo: form.cargo,
+          },
+          evaluation,
+        });
+        report = data?.report;
+      } else {
+        const created = await createReport({
+          type: "basic",
+          companyId,
+          patient: {
+            name: form.nombre,
+            rut: form.rut,
+            edad: form.edad,
+            cargo: form.cargo,
+          },
+          evaluation,
+        });
+        report = created?.report;
+      }
+
+      if (!report?._id) throw new Error("No se pudo guardar el informe");
+
+      if (firmarAlGuardar && !report?.signature?.signed) {
         let mySignature = profileSignatureRel;
         let myName = me?.name || "";
         let myRut = me?.rut || "";
@@ -185,11 +271,11 @@ export default function ReportNewBasic() {
         
       }
 
-      alert(`Informe básico creado (N° ${report.reportNumber})${firmarAlGuardar ? " y firmado" : ""}.`);
+      alert(`Informe básico ${mode === "edit" ? "actualizado" : "creado"} (N° ${report.reportNumber}).`);
       nav("/reports");
     } catch (err) {
-      console.error("❌ Error al crear/firmar:", err);
-      alert(err?.response?.data?.message || err?.message || "Error al crear el informe.");
+      console.error("❌ Error al guardar/firmar:", err);
+      alert(err?.response?.data?.message || err?.message || "Error al guardar el informe.");
     }
   };
 
@@ -214,6 +300,29 @@ export default function ReportNewBasic() {
             </option>
           ))}
         </select>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <div className="mb-1 text-xs font-medium text-slate-200">Tipo</div>
+            <input
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none opacity-80"
+              value="Básico"
+              disabled
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-medium text-slate-200">Estado</div>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none"
+            >
+              <option value="draft">draft</option>
+              <option value="signed">signed</option>
+              <option value="final">final</option>
+            </select>
+          </div>
+        </div>
 
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-200">
           <input type="checkbox" checked={firmarAlGuardar} onChange={(e) => setFirmarAlGuardar(e.target.checked)} />
@@ -304,10 +413,10 @@ export default function ReportNewBasic() {
 
       <div className="mt-6 flex items-center justify-end gap-3">
         <button
-          onClick={handleCreate}
+          onClick={handleSave}
           className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-400"
         >
-          Guardar Informe
+          {mode === "edit" ? "Guardar cambios" : "Guardar Informe"}
         </button>
       </div>
     </div>

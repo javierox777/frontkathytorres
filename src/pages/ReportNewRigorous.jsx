@@ -1,6 +1,6 @@
 // src/pages/ReportNewRigorous.jsx
 import { useEffect, useState } from "react";
-import { api, createReport, signReport, getMe } from "../services/api.js";
+import { api, createReport, signReport, getMe, getReport, updateReport } from "../services/api.js";
 import { useNavigate } from "react-router-dom";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000/api").replace(/\/api$/, "");
@@ -24,12 +24,15 @@ const EPWORTH_OPTS = [
   "Somnolencia Grave",
 ];
 
-export default function ReportNewRigorous() {
+export default function ReportNewRigorous({ mode = "new", reportId: reportIdProp } = {}) {
   const nav = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [companyId, setCompanyId] = useState("");
+  const [status, setStatus] = useState("draft");
   const [firmarAlGuardar, setFirmarAlGuardar] = useState(true);
   const [me, setMe] = useState(null);
+
+  const reportId = reportIdProp || null;
 
   useEffect(() => {
     (async () => {
@@ -110,36 +113,92 @@ export default function ReportNewRigorous() {
     observacion: "",
   }));
 
+  // Modo edición: cargar informe y poblar formulario completo
+  useEffect(() => {
+    if (mode !== "edit" || !reportId) return;
+    (async () => {
+      try {
+        const { data } = await getReport(reportId);
+        const r = data?.report;
+        if (!r?._id) return;
+
+        setCompanyId(r.company?._id || "");
+        setStatus(r.status || "draft");
+
+        const ev = r.evaluation || {};
+        const p = r.patient || {};
+
+        setForm((prev) => ({
+          ...prev,
+          ...ev,
+          // Compatibilidad con claves de patient / fecha
+          nombre: ev.nombre ?? p.name ?? prev.nombre,
+          rut: ev.rut ?? p.rut ?? prev.rut,
+          edad: ev.edad ?? p.edad ?? prev.edad,
+          cargo: ev.cargo ?? p.cargo ?? prev.cargo,
+          fecha: ev.fechaEvaluacion ?? ev.fecha ?? prev.fecha,
+        }));
+      } catch (e) {
+        console.error("Error cargando informe riguroso:", e);
+        alert(e?.response?.data?.message || "No se pudo cargar el informe para edición");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, reportId]);
+
   const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     try {
       if (!companyId) {
         alert("Debes seleccionar un cliente (empresa).");
         return;
       }
 
-      const payload = {
-        type: "rigorous",
-        companyId,
-        patient: {
-          name: form.nombre,
-          rut: form.rut,
-          edad: form.edad,
-          cargo: form.cargo,
-        },
-        evaluation: {
-          // se guarda tal cual el formulario
-          ...form,
-          fechaEvaluacion: form.fecha,
-        },
+      const evaluation = {
+        // se guarda tal cual el formulario
+        ...form,
+        fechaEvaluacion: form.fecha,
       };
 
-      const created = await createReport(payload);
-      const report = created?.report;
-      if (!report?._id) throw new Error("No se pudo crear el reporte");
+      let report = null;
 
-      if (firmarAlGuardar) {
+      if (mode === "edit") {
+        if (!reportId) {
+          alert("Falta el ID del informe para editar.");
+          return;
+        }
+        const { data } = await updateReport(reportId, {
+          company: companyId,
+          type: "rigorous",
+          status,
+          patient: {
+            name: form.nombre,
+            rut: form.rut,
+            edad: form.edad,
+            cargo: form.cargo,
+          },
+          evaluation,
+        });
+        report = data?.report;
+      } else {
+        const created = await createReport({
+          type: "rigorous",
+          companyId,
+          patient: {
+            name: form.nombre,
+            rut: form.rut,
+            edad: form.edad,
+            cargo: form.cargo,
+          },
+          evaluation,
+        });
+        report = created?.report;
+      }
+
+      if (!report?._id) throw new Error("No se pudo guardar el informe");
+
+      if (firmarAlGuardar && !report?.signature?.signed) {
         let mySignature = profileSignatureRel;
         let myName = me?.name || "";
         let myRut = me?.rut || "";
@@ -169,11 +228,11 @@ export default function ReportNewRigorous() {
         
       }
 
-      alert(`Informe riguroso creado (N° ${report.reportNumber})${firmarAlGuardar ? " y firmado" : ""}.`);
+      alert(`Informe riguroso ${mode === "edit" ? "actualizado" : "creado"} (N° ${report.reportNumber}).`);
       nav("/reports");
     } catch (err) {
-      console.error("❌ Error al crear/firmar:", err);
-      alert(err?.response?.data?.message || err?.message || "Error al crear el informe.");
+      console.error("❌ Error al guardar:", err);
+      alert(err?.response?.data?.message || err?.message || "Error al guardar el informe.");
     }
   };
 
@@ -195,6 +254,29 @@ export default function ReportNewRigorous() {
             </option>
           ))}
         </select>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <div className="mb-1 text-xs text-slate-300">Tipo</div>
+            <input
+              value="Riguroso"
+              disabled
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 opacity-80"
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-xs text-slate-300">Estado</div>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none"
+            >
+              <option value="draft">draft</option>
+              <option value="signed">signed</option>
+              <option value="final">final</option>
+            </select>
+          </div>
+        </div>
 
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-200">
           <input type="checkbox" checked={firmarAlGuardar} onChange={(e) => setFirmarAlGuardar(e.target.checked)} />
@@ -332,10 +414,10 @@ export default function ReportNewRigorous() {
 
       <div className="mt-6 flex items-center justify-end gap-3">
         <button
-          onClick={handleCreate}
+          onClick={handleSave}
           className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-400"
         >
-          Guardar Informe
+          {mode === "edit" ? "Guardar cambios" : "Guardar Informe"}
         </button>
       </div>
     </div>
