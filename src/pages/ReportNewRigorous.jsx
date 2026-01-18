@@ -16,6 +16,14 @@ const AUDIO_OPTS = ["Aprobado", "Alterado"];
 const OPT_OPTS = ["Aprobado", "Alterado", "Límite normal"];
 const RESULT_OPTS = ["Aprobado", "Reprobado", "Pendiente"];
 
+// Opciones solicitadas para "Evaluación de sueño" (Epworth)
+const EPWORTH_OPTS = [
+  "Sin alteraciones",
+  "Somnolencia Leve",
+  "Somnolencia Moderada",
+  "Somnolencia Grave",
+];
+
 export default function ReportNewRigorous() {
   const nav = useNavigate();
   const [companies, setCompanies] = useState([]);
@@ -91,6 +99,10 @@ export default function ReportNewRigorous() {
 
     // Sueño
     epworth: "",
+    psy_extraversion: "",
+    psy_neuroticismo: "",
+    psy_psicoticismo: "",
+    psy_observaciones: "",
 
     // Conclusión
     resultado: "",
@@ -260,6 +272,50 @@ export default function ReportNewRigorous() {
           <Select label="Ambos" value={form.audio_ambos} onChange={set("audio_ambos")} options={AUDIO_OPTS} />
           <Select label="OI" value={form.audio_oi} onChange={set("audio_oi")} options={AUDIO_OPTS} />
           <Select label="OD" value={form.audio_od} onChange={set("audio_od")} options={AUDIO_OPTS} />
+        </Row>
+      </Section>
+
+      <Section title="Evaluación psicológica">
+        <Row>
+          <Select
+            label="Extraversion"
+            value={form.psy_extraversion}
+            onChange={set("psy_extraversion")}
+            options={RESULT_OPTS}
+          />
+          <Select
+            label="Neuroticismo"
+            value={form.psy_neuroticismo}
+            onChange={set("psy_neuroticismo")}
+            options={RESULT_OPTS}
+          />
+          <Select
+            label="Psicoticismo"
+            value={form.psy_psicoticismo}
+            onChange={set("psy_psicoticismo")}
+            options={RESULT_OPTS}
+          />
+        </Row>
+        <Row>
+          <Field
+            label="Observaciones"
+            value={form.psy_observaciones}
+            onChange={set("psy_observaciones")}
+            span={3}
+          />
+        </Row>
+      </Section>
+
+      <Section title="Evaluación de sueño">
+        <Row>
+          <Select
+            label="Calidad de sueño Epworth"
+            value={form.epworth}
+            onChange={set("epworth")}
+            options={EPWORTH_OPTS}
+          />
+          <div></div>
+          <div></div>
         </Row>
       </Section>
 

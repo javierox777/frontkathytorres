@@ -17,7 +17,7 @@ const TEST_OPTS = ["Aprobado", "Alterado", "Límite normal"];
 const AUDIO_OPTS = ["Aprobado", "Alterado"];
 const RESULT_OPTS = ["Aprobado", "Reprobado", "Pendiente"];
 const EPWORTH_OPTS = [
-  "Sin Alteraciones",
+  "Sin alteraciones",
   "Somnolencia Leve",
   "Somnolencia Moderada",
   "Somnolencia Grave",
@@ -77,6 +77,12 @@ export default function ReportNewBasic() {
     psi_punteado: "",
     psi_reactimetria: "",
 
+    // Evaluación psicológica (tabla en PDF)
+    psy_extraversion: "",
+    psy_neuroticismo: "",
+    psy_psicoticismo: "",
+    psy_observaciones: "",
+
     // Audiometría
     audio_ambos: "",
     s_audicion_oi: "",
@@ -131,6 +137,10 @@ export default function ReportNewBasic() {
           psi_palancas: form.psi_palancas,
           psi_punteado: form.psi_punteado,
           psi_reactimetria: form.psi_reactimetria,
+          psy_extraversion: form.psy_extraversion,
+          psy_neuroticismo: form.psy_neuroticismo,
+          psy_psicoticismo: form.psy_psicoticismo,
+          psy_observaciones: form.psy_observaciones,
           audio_ambos: form.audio_ambos,
           s_audicion_oi: form.s_audicion_oi,
           s_audicion_od: form.s_audicion_od,
@@ -265,6 +275,18 @@ export default function ReportNewBasic() {
       <Section title="Sueño (Epworth)">
         <Row>
           <Select label="Epworth" value={form.epworth} onChange={set("epworth")} options={EPWORTH_OPTS} span={2} />
+        </Row>
+      </Section>
+
+      {/* EVALUACIÓN PSICOLÓGICA */}
+      <Section title="Evaluación psicológica">
+        <Row>
+          <Select label="Extraversion" value={form.psy_extraversion} onChange={set("psy_extraversion")} options={RESULT_OPTS} />
+          <Select label="Neuroticismo" value={form.psy_neuroticismo} onChange={set("psy_neuroticismo")} options={RESULT_OPTS} />
+          <Select label="Psicoticismo" value={form.psy_psicoticismo} onChange={set("psy_psicoticismo")} options={RESULT_OPTS} />
+        </Row>
+        <Row>
+          <Field label="Observaciones" value={form.psy_observaciones} onChange={set("psy_observaciones")} span={3} />
         </Row>
       </Section>
 
