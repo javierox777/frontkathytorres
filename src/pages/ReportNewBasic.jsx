@@ -179,9 +179,10 @@ export default function ReportNewBasic() {
         await signReport(report._id, {
           name: myName,
           rut: myRut,
-          cargo: "",
+          cargo: me?.cargo || "",   // ✅ ahora sí
           imageUrl: mySignature,
         });
+        
       }
 
       alert(`Informe básico creado (N° ${report.reportNumber})${firmarAlGuardar ? " y firmado" : ""}.`);

@@ -163,9 +163,10 @@ export default function ReportNewRigorous() {
         await signReport(report._id, {
           name: myName,
           rut: myRut,
-          cargo: "",
+          cargo: me?.cargo || "",   // ✅ ahora sí
           imageUrl: mySignature,
         });
+        
       }
 
       alert(`Informe riguroso creado (N° ${report.reportNumber})${firmarAlGuardar ? " y firmado" : ""}.`);
