@@ -55,6 +55,16 @@ export const getReport = (id) => api.get(`/reports/${id}`);
 export const signReport = (id, payload) => api.post(`/reports/${id}/sign`, payload);
 export const generateReportPdf = (id) => api.get(`/reports/${id}/pdf`);
 
+// ================= Admin: Companies =================
+export const listCompanies = (params) => api.get("/companies", { params });
+export const getCompany = (id) => api.get(`/companies/${id}`);
+export const updateCompany = (id, payload) => api.patch(`/companies/${id}`, payload);
+export const deleteCompany = (id) => api.delete(`/companies/${id}`);
+
+// ================= Admin: Reports (update/delete) =================
+export const updateReport = (id, payload) => api.patch(`/reports/${id}`, payload);
+export const deleteReport = (id) => api.delete(`/reports/${id}`);
+
 // ================= Legacy (WorkOrders) =================
 export const signWorkOrder = (id, payload) => api.post(`/workorders/${id}/sign`, payload);
 export const generateWorkOrderPdf = (id, type) => api.get(`/workorders/${id}/pdf`, { params: { type } });

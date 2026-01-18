@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../services/api.js";
+import { api, deleteCompany } from "../services/api.js";
 import { Link } from "react-router-dom";
 
 export default function Companies() {
@@ -18,6 +18,16 @@ export default function Companies() {
       }
     })();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (!confirm("¿Eliminar esta empresa? Esta acción la oculta del sistema.")) return;
+    try {
+      await deleteCompany(id);
+      setList((prev) => prev.filter((x) => x._id !== id));
+    } catch (e) {
+      alert(e?.response?.data?.message || "Error al eliminar empresa");
+    }
+  };
 
   if (loading) return <p>Cargando...</p>;
 
@@ -45,12 +55,26 @@ export default function Companies() {
 
 
             {/* 👉 Botón cambiar contraseña */}
-            <Link
-              to={`/companies/${c._id}/password`}
-              className="text-sm px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700"
-            >
-              Cambiar contraseña
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                to={`/companies/${c._id}/edit`}
+                className="text-sm px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20"
+              >
+                Editar
+              </Link>
+              <Link
+                to={`/companies/${c._id}/password`}
+                className="text-sm px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700"
+              >
+                Contraseña
+              </Link>
+              <button
+                onClick={() => handleDelete(c._id)}
+                className="text-sm px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
           </li>
         ))}
       </ul>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, listReports, signReport } from "../services/api.js";
+import { api, listReports, signReport, deleteReport } from "../services/api.js";
 import ReportPDFButton from "../components/ReportPDFButton.jsx";
 
 export default function ReportsList() {
@@ -223,6 +223,18 @@ function Details({ reportId, onChange }) {
     }
   };
 
+  const doDelete = async () => {
+    if (!confirm("¿Eliminar este informe? Esta acción lo oculta del sistema.")) return;
+    try {
+      setMsg("");
+      await deleteReport(reportId);
+      setMsg("✅ Informe eliminado.");
+      await onChange?.();
+    } catch (e) {
+      setMsg(e?.response?.data?.message || "❌ No se pudo eliminar.");
+    }
+  };
+
   if (loading) return <div className="text-sm text-white/70">Cargando detalle…</div>;
   if (!report) return <div className="text-sm text-red-200">No se pudo cargar el detalle.</div>;
 
@@ -232,9 +244,20 @@ function Details({ reportId, onChange }) {
         <div className="text-white/80">
           <b>N°:</b> {report.reportNumber} · <b>Cliente:</b> {report.company?.name} · <b>Paciente:</b> {report.patient?.name}
         </div>
-        <button className="btn-primary w-auto" onClick={doSign} disabled={report.signature?.signed}>
-          {report.signature?.signed ? "Ya firmado" : "Firmar"}
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to={`/reports/${reportId}/edit`}
+            className="btn-primary w-auto px-3 py-2 bg-white/10 hover:bg-white/20"
+          >
+            Editar
+          </Link>
+          <button className="btn-primary w-auto" onClick={doSign} disabled={report.signature?.signed}>
+            {report.signature?.signed ? "Ya firmado" : "Firmar"}
+          </button>
+          <button className="btn-primary w-auto px-3 py-2 bg-red-600 hover:bg-red-700" onClick={doDelete}>
+            Eliminar
+          </button>
+        </div>
       </div>
       {msg && <div className="text-white/80">{msg}</div>}
       <div className="grid md:grid-cols-2 gap-3 text-white/80">

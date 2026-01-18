@@ -18,6 +18,7 @@ import Admin from "./pages/Admin.jsx";
 
 import Companies from "./pages/Companies.jsx";
 import CompanyNew from "./pages/CompanyNew.jsx";
+import CompanyEdit from "./pages/CompanyEdit.jsx";
 
 import CompanyPasswordEdit from "./pages/CompanyPasswordEdit.jsx";
 
@@ -25,6 +26,7 @@ import CompanyPasswordEdit from "./pages/CompanyPasswordEdit.jsx";
 import ReportsList from "./pages/ReportsList.jsx";
 import ReportNewRigorous from "./pages/ReportNewRigorous.jsx";
 import ReportNewBasic from "./pages/ReportNewBasic.jsx";
+import ReportEdit from "./pages/ReportEdit.jsx";
 
 import ClientReports from "./pages/ClientReports.jsx";
 import ClientReportDetail from "./pages/ClientReportDetail.jsx";
@@ -85,8 +87,10 @@ export default function App() {
         {/* 👇 las dos rutas que faltaban */}
         <Route path="/companies" element={<Companies />} />
         <Route path="/companies/new" element={<CompanyNew />} />
+        <Route path="/companies/:id/edit" element={<CompanyEdit />} />
         <Route path="/companies/:id/password" element={<CompanyPasswordEdit />} />
         <Route path="/reports" element={<ReportsList />} />
+        <Route path="/reports/:id/edit" element={<ReportEdit />} />
   <Route path="/reports/new/rigorous" element={<ReportNewRigorous />} />
   <Route path="/reports/new/basic" element={<ReportNewBasic />} />
       </Route>
