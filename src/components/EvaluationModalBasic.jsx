@@ -4,9 +4,23 @@ import { api, getMe, signWorkOrder } from "../services/api.js";
 
 // Opciones
 const APROBADO = ["Aprobado", "Reprobado", "No aplica"];
+const AUDIO_OPTS = ["Aprobado", "Alterado"];
 const NORMAL_APROB = ["Normal", "Aprobado", "No aplica"];
 const SI_NO = ["Si", "No", "No aplica"];
 const RESULTADO_FINAL = ["Aprobado", "Pendiente", "Rechazado"];
+// Requerimiento cliente: licencias A1–D (mantener B como default)
+const LICENCIA_OPTS = ["A1", "A2", "A3", "A4", "A5", "B", "C", "D"];
+// Psicologia: evaluacion y competencias transversales (requerimiento cliente)
+const PSY_NIVEL_OPTS = ["ALTO", "MEDIO", "BAJO", "NO APLICA"];
+const DEFAULT_PSY_COMPETENCIAS = {
+  razonamiento: "ALTO",
+  identificar_riesgos: "ALTO",
+  estabilidad_emocional: "ALTO",
+  relaciones_laborales: "ALTO",
+  autocontrol: "ALTO",
+  tolerancia_adaptacion: "ALTO",
+};
+
 
 // para armar URL absoluta si la firma viene relativa (/uploads/xx.png)
 const baseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/api$/, "");
@@ -62,14 +76,11 @@ export default function EvaluationModalBasic({ open, wo, onClose, onSaved }) {
       aud_izquierdo: ev?.aud_izquierdo || "Aprobado",
       aud_derecho: ev?.aud_derecho || "Aprobado",
       aud_observaciones: ev?.aud_observaciones || "Cumple con DS 170.-",
-
-      // Psicológica
-      psy_extroversion: ev?.psy_extroversion || "Normal",
-      psy_neuroticismo: ev?.psy_neuroticismo || "Normal",
-      psy_psicoticismo: ev?.psy_psicoticismo || "Normal",
+      // Psicologica: Evaluacion y competencias transversales
+      psy_competencias: ev?.psy_competencias || DEFAULT_PSY_COMPETENCIAS,
       psy_observaciones:
         ev?.psy_observaciones ||
-        "La evaluación psicológica se presenta dentro de los límites normales de funcionamiento. No existen indicadores de trastorno psicológico asociado.",
+        "La evaluacion psicologica se presenta dentro de los limites normales de funcionamiento. No existen indicadores de trastorno psicologico asociado.",
 
       // Sueño
       sleep_epworth: ev?.sleep_epworth || "Normal",
@@ -184,10 +195,10 @@ export default function EvaluationModalBasic({ open, wo, onClose, onSaved }) {
               <Input label="Edad" value={form.edad} onChange={(v)=>update("edad", v)} />
               <Input label="Cargo" value={form.cargo} onChange={(v)=>update("cargo", v)} />
               <Input label="Empresa" value={form.empresa} onChange={(v)=>update("empresa", v)} className="md:col-span-2" />
-              <Input label="Licencia de conducir" value={form.licencia} onChange={(v)=>update("licencia", v)} />
-              <Input label="Vigencia licencia" value={form.vigenciaLicencia} onChange={(v)=>update("vigenciaLicencia", v)} />
+              <Select label="Licencia de conducir" value={form.licencia} onChange={(v)=>update("licencia", v)} options={LICENCIA_OPTS} />
+              <Input type="date" label="Vigencia licencia" value={form.vigenciaLicencia} onChange={(v)=>update("vigenciaLicencia", v)} />
               <Input type="date" label="Fecha de evaluación" value={form.fechaEvaluacion} onChange={(v)=>update("fechaEvaluacion", v)} />
-              <Input label="Vigencia evaluación" value={form.vigenciaEvaluacion} onChange={(v)=>update("vigenciaEvaluacion", v)} />
+              <Input type="date" label="Vigencia evaluación" value={form.vigenciaEvaluacion} onChange={(v)=>update("vigenciaEvaluacion", v)} />
             </div>
           </section>
 
@@ -226,9 +237,9 @@ export default function EvaluationModalBasic({ open, wo, onClose, onSaved }) {
               Frecuencias: 500 / 1000 / 2000 Hz · Umbral 40 dB (ambos, izquierdo, derecho)
             </p>
             <div className="grid md:grid-cols-3 gap-3">
-              <Select label="Ambos oídos" value={form.aud_ambos} onChange={(v)=>update("aud_ambos", v)} options={APROBADO} />
-              <Select label="Oído izquierdo" value={form.aud_izquierdo} onChange={(v)=>update("aud_izquierdo", v)} options={APROBADO} />
-              <Select label="Oído derecho" value={form.aud_derecho} onChange={(v)=>update("aud_derecho", v)} options={APROBADO} />
+              <Select label="Ambos oídos" value={form.aud_ambos} onChange={(v)=>update("aud_ambos", v)} options={AUDIO_OPTS} />
+              <Select label="Oído izquierdo" value={form.aud_izquierdo} onChange={(v)=>update("aud_izquierdo", v)} options={AUDIO_OPTS} />
+              <Select label="Oído derecho" value={form.aud_derecho} onChange={(v)=>update("aud_derecho", v)} options={AUDIO_OPTS} />
             </div>
             <Textarea label="Observaciones" value={form.aud_observaciones} onChange={(v)=>update("aud_observaciones", v)} />
           </section>
@@ -236,13 +247,44 @@ export default function EvaluationModalBasic({ open, wo, onClose, onSaved }) {
           {/* EVALUACIÓN PSICOLÓGICA */}
           <section className="space-y-3">
             <h3 className="font-semibold text-white">Evaluación psicológica</h3>
-            <div className="grid md:grid-cols-3 gap-3">
-              <Select label="Extroversión" value={form.psy_extroversion} onChange={(v)=>update("psy_extroversion", v)} options={NORMAL_APROB} />
-              <Select label="Neuroticismo" value={form.psy_neuroticismo} onChange={(v)=>update("psy_neuroticismo", v)} options={NORMAL_APROB} />
-              <Select label="Psicoticismo" value={form.psy_psicoticismo} onChange={(v)=>update("psy_psicoticismo", v)} options={NORMAL_APROB} />
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="text-xs font-semibold text-white/80 mb-2">
+                EVALUACIÓN Y COMPETENCIAS TRANSVERSALES
+              </div>
+
+              <div className="grid gap-2">
+                {[
+                  ["Razonamiento y comprensión", "razonamiento"],
+                  ["Capacidad de identificar riesgos", "identificar_riesgos"],
+                  ["Estabilidad emocional", "estabilidad_emocional"],
+                  ["Relaciones laborales", "relaciones_laborales"],
+                  ["Autocontrol", "autocontrol"],
+                  ["Tolerancia y adaptación", "tolerancia_adaptacion"],
+                ].map(([label, key]) => (
+                  <div key={key} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-9 text-sm text-white/80">{label}:</div>
+                    <div className="col-span-3">
+                      <Select
+                        label=""
+                        value={(form.psy_competencias || {})[key] || "ALTO"}
+                        onChange={(v) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            psy_competencias: { ...(prev.psy_competencias || {}), [key]: v },
+                          }))
+                        }
+                        options={PSY_NIVEL_OPTS}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <Textarea label="Observaciones" value={form.psy_observaciones} onChange={(v)=>update("psy_observaciones", v)} />
           </section>
+
 
           {/* EVALUACIÓN DE SUEÑO */}
           <section className="space-y-3">

@@ -8,7 +8,23 @@ const PSICOTEC_OPTS = ["Preciso", "Alterado", "No aplica"];
 const SENSOTEC_OPTS = ["Aprobado", "Reprobado", "No aplica"];
 const TRANSV_OPTS = ["Alto", "Medio", "Bajo"];
 const LENTES_OPTS = ["No", "Si", "No aplica"];
-const LICENCIA_OPTS = ["B", "B/C", "B/D", "A/B/D", "A3/A5/B/D", "A3/B"];
+// Requerimiento cliente: incorporar licencias A1–D (manteniendo combinaciones antiguas por compatibilidad)
+const LICENCIA_OPTS = [
+  "A1",
+  "A2",
+  "A3",
+  "A4",
+  "A5",
+  "B",
+  "C",
+  "D",
+  // Legacy / combinadas
+  "B/C",
+  "B/D",
+  "A/B/D",
+  "A3/A5/B/D",
+  "A3/B",
+];
 const CATEGORIA_OPTS = ["Categoría Básica", "Categoría Profesional"];
 
 // Para armar URL absoluta en la vista previa (si la firma viene relativa)

@@ -3,6 +3,17 @@ import { useEffect, useState } from "react";
 import { api, createReport, signReport, getMe, getReport, updateReport } from "../services/api.js";
 import { useNavigate } from "react-router-dom";
 
+// Psicologia: evaluacion y competencias transversales (requerimiento cliente)
+const PSY_NIVEL_OPTS = ["ALTO", "MEDIO", "BAJO", "NO APLICA"];
+const DEFAULT_PSY_COMPETENCIAS = {
+  razonamiento: "ALTO",
+  identificar_riesgos: "ALTO",
+  estabilidad_emocional: "ALTO",
+  relaciones_laborales: "ALTO",
+  autocontrol: "ALTO",
+  tolerancia_adaptacion: "ALTO",
+};
+
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000/api").replace(/\/api$/, "");
 const toAbs = (u) => {
   if (!u) return "";
@@ -105,6 +116,8 @@ export default function ReportNewRigorous({ mode = "new", reportId: reportIdProp
     psy_extraversion: "",
     psy_neuroticismo: "",
     psy_psicoticismo: "",
+    psy_competencias: DEFAULT_PSY_COMPETENCIAS,
+    // Nuevo: campo libre para el bloque de Evaluación psicológica
     psy_observaciones: "",
 
     // Conclusión
@@ -147,6 +160,14 @@ export default function ReportNewRigorous({ mode = "new", reportId: reportIdProp
   }, [mode, reportId]);
 
   const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const setPsy = (k) => (e) =>
+    setForm((prev) => ({
+      ...prev,
+      psy_competencias: {
+        ...(prev.psy_competencias || DEFAULT_PSY_COMPETENCIAS),
+        [k]: e.target.value,
+      },
+    }));
 
   const handleSave = async () => {
     try {
@@ -302,12 +323,12 @@ export default function ReportNewRigorous({ mode = "new", reportId: reportIdProp
           <Field label="Cargo" value={form.cargo} onChange={set("cargo")} span={2} />
         </Row>
         <Row>
-          <Select label="Licencia" value={form.licencia} onChange={set("licencia")} options={["B", "A2", "A3", "A4", "A5"]} />
+          <Select label="Licencia" value={form.licencia} onChange={set("licencia")} options={["A1", "A2", "A3", "A4", "A5", "B", "C", "D"]} />
           <Field label="Fecha" type="date" value={form.fecha} onChange={set("fecha")} />
-          <Field label="Vigencia Licencia" value={form.vigenciaLicencia} onChange={set("vigenciaLicencia")} />
+          <Field label="Vigencia Licencia" type="date" value={form.vigenciaLicencia} onChange={set("vigenciaLicencia")} />
         </Row>
         <Row>
-          <Field label="Vigencia Evaluación" value={form.vigenciaEvaluacion} onChange={set("vigenciaEvaluacion")} span={2} />
+          <Field label="Vigencia Evaluación" type="date" value={form.vigenciaEvaluacion} onChange={set("vigenciaEvaluacion")} span={2} />
         </Row>
       </Section>
 
@@ -359,26 +380,40 @@ export default function ReportNewRigorous({ mode = "new", reportId: reportIdProp
       </Section>
 
       <Section title="Evaluación psicológica">
-        <Row>
-          <Select
-            label="Extraversion"
-            value={form.psy_extraversion}
-            onChange={set("psy_extraversion")}
-            options={RESULT_OPTS}
-          />
-          <Select
-            label="Neuroticismo"
-            value={form.psy_neuroticismo}
-            onChange={set("psy_neuroticismo")}
-            options={RESULT_OPTS}
-          />
-          <Select
-            label="Psicoticismo"
-            value={form.psy_psicoticismo}
-            onChange={set("psy_psicoticismo")}
-            options={RESULT_OPTS}
-          />
-        </Row>
+        <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+  <div className="mb-2 text-xs font-semibold text-slate-200">
+    EVALUACIÓN Y COMPETENCIAS TRANSVERSALES
+  </div>
+
+  <div className="grid gap-2">
+    {[
+      ["Razonamiento y comprensión", "razonamiento"],
+      ["Capacidad de identificar riesgos", "identificar_riesgos"],
+      ["Estabilidad emocional", "estabilidad_emocional"],
+      ["Relaciones laborales", "relaciones_laborales"],
+      ["Autocontrol", "autocontrol"],
+      ["Tolerancia y adaptación", "tolerancia_adaptacion"],
+    ].map(([label, key]) => (
+      <div key={key} className="grid grid-cols-12 items-center gap-2">
+        <div className="col-span-9 text-sm text-slate-200">{label}:</div>
+        <div className="col-span-3">
+          <select
+            value={(form.psy_competencias && form.psy_competencias[key]) || "ALTO"}
+            onChange={setPsy(key)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-slate-100 outline-none"
+          >
+            {PSY_NIVEL_OPTS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
         <Row>
           <Field
             label="Observaciones"
